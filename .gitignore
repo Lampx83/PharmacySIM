@@ -13,6 +13,8 @@ npm-debug.log*
 .idea/
 dist/
 .claude/
+.scratch/
+docs/agents/
 
 # Chỉ mục đồ thị codebase (AST, sinh bởi `npm run graphify:update` / cron —
 # xem .scratch/ai-board-plugin-registry/issues/17-graph-context-cron.md).
