@@ -14,6 +14,11 @@ npm-debug.log*
 dist/
 .claude/
 
+# Chỉ mục đồ thị codebase (AST, sinh bởi `npm run graphify:update` / cron —
+# xem .scratch/ai-board-plugin-registry/issues/17-graph-context-cron.md).
+# Build artifact tái tạo được, không phải nguồn.
+graphify-out/
+
 # Postgres data export sinh bởi scripts/export-sqlite-to-pg.mjs — chứa dữ liệu
 # thật (session token, password hash). KHÔNG commit. Schema (001_*.sql) thì commit.
 migrations/postgres/data-export.sql

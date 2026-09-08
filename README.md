@@ -137,6 +137,12 @@ Mở `http://<host>:8041`.
     tar czf /backup/tizia-backup.tar.gz /data
   ```
 - **Đổi port host**: sửa `8041:8041` → `<host_port>:8041` trong compose, KHÔNG đổi `PORT` env.
+- **Chỉ mục đồ thị codebase (graphify)**: `npm run graphify:update` chạy `graphify update .`
+  (AST thuần, CPU-only, 0 LLM token — cần cài `graphify` CLI trên host, không cài trong
+  container) để cập nhật `graphify-out/` cho các tool tra cứu (`graphify query`, `path`,
+  `explain`). Không có CI/cron sẵn trong repo — lên lịch bằng cron/Task Scheduler của host
+  sau mỗi merge vào `main`, hoặc chạy nightly. Đây chỉ để THU HẸP phạm vi tìm kiếm — luôn
+  đọc lại file thật trước khi kết luận, không coi kết quả graph là câu trả lời cuối.
 
 ---
 
