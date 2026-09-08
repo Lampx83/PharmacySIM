@@ -34,6 +34,7 @@
 // ============================================================
 
 import { WebSocketServer } from 'ws';
+import { log } from './observability.js';
 
 const PALETTE = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#84cc16','#fbbf24','#a855f7'];
 
@@ -41,6 +42,7 @@ function nowSec() { return Math.floor(Date.now() / 1000); }
 
 export function attachOrchestration(httpServer, basePath = '') {
   const wss = new WebSocketServer({ noServer: true });
+  wss.on('error', (err) => log.error('[ws:orchestrate] server error', { err }));
   const rooms = new Map(); // classCode → { students, teachers, pinnedTask, lastBroadcast, openQuizId }
   let nextId = 1;
 
@@ -107,6 +109,7 @@ export function attachOrchestration(httpServer, basePath = '') {
       score: 0, correct: 0, total: 0,
       joinedAt: nowSec(), lastSeen: nowSec(),
     };
+    ws.on('error', (err) => log.warn('[ws:orchestrate] connection error', { err, connId: conn.id }));
 
     ws.on('message', (raw) => {
       let msg; try { msg = JSON.parse(raw); } catch { return; }
@@ -292,6 +295,7 @@ export function attachOrchestration(httpServer, basePath = '') {
     });
 
     ws.on('close', () => {
+      log.info('[ws:orchestrate] connection closed', { connId: conn.id, classCode: conn.classCode });
       if (!conn.classCode) return;
       const room = rooms.get(conn.classCode);
       if (!room) return;

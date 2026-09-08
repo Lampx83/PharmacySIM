@@ -10,6 +10,7 @@
 
 import { WebSocketServer } from 'ws';
 import { getSession, getUserById } from '../../db.js';
+import { log } from '../../observability.js';
 
 const HEARTBEAT_MS = 20 * 1000;
 const IDLE_TIMEOUT_MS = 60 * 1000;
@@ -74,6 +75,7 @@ function roomSnapshot(roomId) {
 
 export function attachPresence(server) {
   const wss = new WebSocketServer({ noServer: true, path: '/ws-presence' });
+  wss.on('error', (err) => log.error('[ws:presence] server error', { err }));
 
   // prependListener để chạy TRƯỚC handler của room.js (cái cuối có else
   // socket.destroy()). Khi path khớp /ws-presence, ta xử lý + stop other handlers
@@ -82,6 +84,7 @@ export function attachPresence(server) {
   server.prependListener('upgrade', (req, socket, head) => {
     const path = (req.url || '').split('?')[0];
     if (path === '/ws-presence') {
+      socket.on('error', (err) => log.warn('[ws:presence] upgrade socket error', { err }));
       wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
       // Stop propagation: ngăn handler khác chạm vào socket đã upgrade
       req._wsHandled = true;
@@ -170,10 +173,11 @@ export function attachPresence(server) {
     });
 
     ws.on('close', () => {
+      log.info('[ws:presence] connection closed', { userId: conn.user.id, roomId: conn.roomId });
       leaveRoom(conn.roomId, conn);
       broadcast(conn.roomId, { type: 'leave', user_id: conn.user.id });
     });
-    ws.on('error', () => {});
+    ws.on('error', (err) => log.warn('[ws:presence] connection error', { err, userId: conn.user.id }));
   });
 
   // Heartbeat sweep: kick idle conns

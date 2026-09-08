@@ -15,6 +15,7 @@
 import { WebSocketServer } from 'ws';
 import { db } from '../../db.js';
 import { requireAuth, getCurrentUser } from '../identity/auth.js';
+import { log } from '../../observability.js';
 
 const TIME_PER_Q_MS = 20_000;     // 20s/câu
 const TIME_BONUS_MAX = 500;       // điểm tối đa thưởng tốc độ
@@ -205,9 +206,11 @@ export function attachLiveQuizHttp(router) {
 export function attachLiveQuizWs(server, basePath = '') {
   // WebSocket route /ws-live
   const wss = new WebSocketServer({ noServer: true });
+  wss.on('error', (err) => log.error('[ws:live-quiz] server error', { err }));
   server.prependListener('upgrade', (req, socket, head) => {
     const path = (req.url || '').split('?')[0];
     if (path === basePath + '/ws-live') {
+      socket.on('error', (err) => log.warn('[ws:live-quiz] upgrade socket error', { err }));
       wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
     }
   });
@@ -240,6 +243,8 @@ export function attachLiveQuizWs(server, basePath = '') {
       ws.send(JSON.stringify({ type: 'joined', id: pid, snapshot: snapshot(room) }));
       broadcast(room, { type: 'player_join', player: { id: pid, name } }, pid);
     }
+    ws.on('error', (err) => log.warn('[ws:live-quiz] connection error', { err, pin, role }));
+
     ws.on('message', (data) => {
       let msg; try { msg = JSON.parse(data); } catch { return; }
       if (role === 'host') {
@@ -261,6 +266,7 @@ export function attachLiveQuizWs(server, basePath = '') {
       }
     });
     ws.on('close', () => {
+      log.info('[ws:live-quiz] connection closed', { pin, role });
       if (role === 'host') room.hostWs = null;
       else {
         for (const [pid, p] of room.players) {
